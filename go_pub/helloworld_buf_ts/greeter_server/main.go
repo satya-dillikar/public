@@ -21,20 +21,20 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"net/http"
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/improbable-eng/grpc-web/go/grpcweb"
+	"github.com/soheilhy/cmux"
 	"google.golang.org/grpc"
-
-	//"google.golang.org/grpc/reflection"
+	"google.golang.org/grpc/reflection"
 	pb "satya.com/helloworld_buf_ts/gen/proto"
 )
 
 const (
-	port = ":50051"
+	port = ":8090"
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -45,13 +45,14 @@ type server struct {
 // SayHello implements helloworld.GreeterServer
 func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
 	log.Printf("Received: %v", in.GetName())
-	return &pb.HelloReply{Message: "From server: Hello " + in.GetName()}, nil
+	return &pb.HelloReply{Message: "Greeter-Server! Hello " + in.GetName()}, nil
 }
 
 func (s *server) SayHelloAgain(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
-	return &pb.HelloReply{Message: "From server: Hello again " + in.GetName()}, nil
+	return &pb.HelloReply{Message: "Greeter-Server! Hello again " + in.GetName()}, nil
 }
 
+/*
 func main() {
 
 	// Create a listener on TCP port
@@ -131,5 +132,105 @@ func main() {
 
 	log.Println("Serving gRPC-Gateway on http://0.0.0.0:8090")
 	log.Fatalln(gwServer.ListenAndServe())
+
+}
+*/
+
+type gwHandlerArgs struct {
+	ctx         context.Context
+	mux         *runtime.ServeMux
+	addr        string
+	dialOptions []grpc.DialOption
+}
+
+func main() {
+
+	lis, err := net.Listen("tcp", port)
+	if err != nil {
+		//return fmt.Errorf("failed to listen: %v", err)
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	// Multiplex the connection between grpc and http.
+	// Note: due to a change in the grpc protocol, it's no longer possible to just match
+	// on the simpler cmux.HTTP2HeaderField("content-type", "application/grpc"). More details
+	// at https://github.com/soheilhy/cmux/issues/64
+	mux := cmux.New(lis)
+	grpcLis := mux.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
+	grpcwebLis := mux.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc-web"))
+	httpLis := mux.Match(cmux.Any())
+
+	// Create the grpc server and register the reflection server (for now, useful for discovery
+	// using grpcurl) or similar.
+	grpcSrv := grpc.NewServer()
+	// Attach the Greeter service to the server
+	pb.RegisterGreeterServer(grpcSrv, &server{})
+
+	// Register reflection service on gRPC server.
+	//log.Printf("Register reflection service on gRPC server")
+	reflection.Register(grpcSrv)
+
+	webrpcProxy := grpcweb.WrapServer(grpcSrv,
+		grpcweb.WithOriginFunc(func(origin string) bool { return true }),
+		grpcweb.WithWebsockets(true),
+		grpcweb.WithWebsocketOriginFunc(func(req *http.Request) bool { return true }),
+	)
+
+	listenAddr := port
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	gwmux := runtime.NewServeMux()
+
+	gwArgs := gwHandlerArgs{
+		ctx:         ctx,
+		mux:         gwmux,
+		addr:        listenAddr,
+		dialOptions: []grpc.DialOption{grpc.WithInsecure()},
+	}
+
+	// Create the core.plugins server which handles registration of plugins,
+	// and register it for both grpc and http.
+	err = pb.RegisterGreeterHandlerFromEndpoint(gwArgs.ctx, gwArgs.mux, gwArgs.addr, gwArgs.dialOptions)
+	if err != nil {
+		log.Fatalf("failed to register Greeter handler for gateway: %v", err)
+	}
+
+	httpSrv := &http.Server{
+		Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if webrpcProxy.IsGrpcWebRequest(r) || webrpcProxy.IsAcceptableGrpcCorsRequest(r) || webrpcProxy.IsGrpcWebSocketRequest(r) {
+				webrpcProxy.ServeHTTP(w, r)
+			} else {
+				gwmux.ServeHTTP(w, r)
+			}
+		}),
+	}
+
+	go func() {
+		err := grpcSrv.Serve(grpcLis)
+		if err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+	log.Println("Serving gRPC ")
+	go func() {
+		err := grpcSrv.Serve(grpcwebLis)
+		if err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+	log.Println("Serving gRPC-web ")
+	go func() {
+		err := httpSrv.Serve(httpLis)
+		if err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+	log.Printf("Serving HTTP %v", port)
+
+	log.Println("Starting MUX server on")
+	if err := mux.Serve(); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 
 }

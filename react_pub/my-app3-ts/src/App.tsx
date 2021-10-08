@@ -42,14 +42,32 @@ function App() {
 
 
   const getMessage = async () => {
-    let response = await greeterClient.SayHello({name : "test-name"});
+    let response = await greeterClient.SayHello({name : "Satya"});
     setMessage(response.message);
   };
+
+  const [message2, setMessage2] = useState('');
+
+  useEffect(() => {
+    // You need to restrict it at some point
+    // This is just dummy code and should be replaced by actual
+    if (!message2) {
+        getMessage2();
+    }
+  }, []);
+
+
+  const getMessage2 = async () => {
+    let response = await greeterClient.SayHelloAgain({name : "Hulk"});
+    setMessage2(response.message);
+  };
+
 
   return (
     <div className="App">
       <HelloWorld />
-      <List data={avengers} />
+      <h1>Response is {message}</h1>
+      <h1>Response is {message2}</h1>
     </div>
   );
 }
