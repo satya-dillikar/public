@@ -1,0 +1,71 @@
+import './App.css';
+import HelloWorld from './components/HelloWorld'
+import List from './components/List'
+
+import React, { useState } from "react";
+import { Todo, AddTodo, ToggleComplete } from "./components/TodoListApp/types";
+import { initialTodos } from "./components/TodoListApp/initialTodos";
+import { TodoList } from "./components/TodoListApp/TodoList";
+import { AddTodoForm } from "./components/TodoListApp/AddTodoForm";
+
+/* const avengers = [
+  'Captain America',
+  'Iron Man',
+  'Black Widow',
+  'Thor',
+  'Hawkeye',
+] */
+
+const avengers = [
+  { name: 'Captain America' },
+  { name: 'Iron Man' },
+  { name: 'Black Widow' },
+  { name: 'Thor' },
+  { name: 'Hawkeye' },
+  { name: 'Vision' },
+  { name: 'Hulk' },
+]
+
+
+
+function App() {
+  const [todos, setTodos] = useState<Array<Todo>>(initialTodos);
+
+  const toggleComplete: ToggleComplete = selectedTodo => {
+    const updatedTodos = todos.map(todo => {
+      if (todo === selectedTodo) {
+        return { ...todo, complete: !todo.complete };
+      }
+      return todo;
+    });
+    setTodos(updatedTodos);
+  };
+
+  const addTodo: AddTodo = newTodo => {
+    newTodo.trim() !== "" &&
+      setTodos([...todos, { text: newTodo, complete: false }]);
+  };
+
+  return (
+    <div className="App">
+      <HelloWorld />
+      <List data={avengers} />
+      <TodoList todos={todos} toggleComplete={toggleComplete} />
+      <AddTodoForm addTodo={addTodo} />
+    </div>
+  );
+}
+
+
+/*
+
+function App() {
+  return (
+    <div className="App">
+      <HelloWorld />
+      <List data={avengers} />
+    </div>
+  );
+}
+*/
+export default App;

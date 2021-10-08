@@ -1,0 +1,27 @@
+version: v1
+plugins:
+  - name: go
+    out: gen
+    opt:
+     - module=satya.com/helloworld_buf_ts/gen
+  - name: go-grpc
+    out: gen
+    opt:
+      - module=satya.com/helloworld_buf_ts/gen
+  - name: grpc-gateway
+    out: gen
+    opt:
+      - module=satya.com/helloworld_buf_ts/gen
+  - name: openapiv2
+    out: docs
+    opt:
+      - allow_merge=true
+      - merge_file_name=helloworld-apis-ts
+      - allow_repeated_fields_in_body=true
+  - name: ts_proto
+    path: ../../react_pub/my-app3-ts/node_modules/.bin/protoc-gen-ts_proto
+    out: ../../react_pub/my-app3-ts/src/components/gen/helloworld
+    opt:
+      - outputClientImpl=grpc-web # client implementation it generates
+      - esModuleInterop=true # use imports as required in modern ts setups
+      - useOptionals=true # use optional TypeScript properties instead of undefined
