@@ -33,10 +33,6 @@ import (
 	pb "satya.com/helloworld_buf_ts/gen/proto"
 )
 
-const (
-	port = ":8090"
-)
-
 // server is used to implement helloworld.GreeterServer.
 type server struct {
 	pb.UnimplementedGreeterServer
@@ -49,10 +45,14 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 }
 
 func (s *server) SayHelloAgain(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
+	log.Printf("Received: %v", in.GetName())
 	return &pb.HelloReply{Message: "Greeter-Server! Hello again " + in.GetName()}, nil
 }
 
 /*
+const (
+	port = ":50051"
+)
 func main() {
 
 	// Create a listener on TCP port
@@ -136,6 +136,11 @@ func main() {
 }
 */
 
+const (
+	//	port = ":8090"
+	port = ":50051"
+)
+
 type gwHandlerArgs struct {
 	ctx         context.Context
 	mux         *runtime.ServeMux
@@ -204,6 +209,32 @@ func main() {
 				gwmux.ServeHTTP(w, r)
 			}
 		}),
+	}
+
+	// Open API - http server
+
+	err = gwmux.HandlePath(http.MethodGet, "/", runtime.HandlerFunc(func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+		http.ServeFile(w, r, "../../../react_pub/my-app3-ts/build/")
+	}))
+	if err != nil {
+		log.Fatalln("Failed to serve: %v", err)
+		return
+	}
+
+	err = gwmux.HandlePath(http.MethodGet, "/openapi.json", runtime.HandlerFunc(func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+		http.ServeFile(w, r, "./docs/helloworld-apis.swagger.json")
+	}))
+	if err != nil {
+		log.Fatalln("Failed to serve: %v", err)
+		return
+	}
+
+	err = gwmux.HandlePath(http.MethodGet, "/docs", runtime.HandlerFunc(func(w http.ResponseWriter, r *http.Request, pathParams map[string]string) {
+		http.ServeFile(w, r, "./docs/index.html")
+	}))
+	if err != nil {
+		log.Fatalln("Failed to serve: %v", err)
+		return
 	}
 
 	go func() {

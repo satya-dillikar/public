@@ -1,6 +1,6 @@
 import './App.css';
-import HelloWorld from './components/HelloWorld'
-import List from './components/List'
+import HelloWorld from './components/HelloWorld';
+import List from './components/List';
 import { grpc } from "@improbable-eng/grpc-web";
 import { GreeterClientImpl, GrpcWebImpl } from "./components/gen/helloworld/helloworld";
 import { useState, useEffect } from 'react';
@@ -26,8 +26,9 @@ const avengers = [
 function App() {
 
   let transport = grpc.CrossBrowserHttpTransport({});
-  let grp_client = new GrpcWebImpl("http://127.0.0.1:8090", {
-      transport })
+   let grp_client = new GrpcWebImpl("http://127.0.0.1:50051", {
+       transport })
+
   let greeterClient = new GreeterClientImpl(grp_client);
 
   const [message, setMessage] = useState('');
@@ -38,11 +39,12 @@ function App() {
     if (!message) {
         getMessage();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
   const getMessage = async () => {
-    let response = await greeterClient.SayHello({name : "Satya"});
+    let response = await greeterClient.SayHello({name : "Satya8090"});
     setMessage(response.message);
   };
 
@@ -54,6 +56,7 @@ function App() {
     if (!message2) {
         getMessage2();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -66,6 +69,7 @@ function App() {
   return (
     <div className="App">
       <HelloWorld />
+      <List data={avengers} />
       <h1>Response is {message}</h1>
       <h1>Response is {message2}</h1>
     </div>

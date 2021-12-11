@@ -41,10 +41,14 @@ https://create-react-app.dev/docs/adding-typescript
 
 cd /reactprojects
 yarn create react-app my-app3-ts --template typescript
+cd  my-app3-ts
 yarn add typescript @types/node @types/react @types/react-dom @types/jest
 yarn add grpc
+yarn add protoc-gen-grpc-web
+
 yarn add google-protobuf @types/google-protobuf @improbable-eng/grpc-web
 
+yarn add swagger-ui-react
 cd my-app3-ts
 yarn start
 

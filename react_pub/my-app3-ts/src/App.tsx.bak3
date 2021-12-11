@@ -1,0 +1,105 @@
+import './App.css';
+import HelloWorld from './components/HelloWorld';
+import List from './components/List';
+import { useState, useEffect } from 'react';
+
+const avengers = [
+  { name: 'Captain America' },
+  { name: 'Iron Man' },
+  { name: 'Black Widow' },
+  { name: 'Thor' },
+  { name: 'Hawkeye' },
+  { name: 'Vision' },
+  { name: 'Hulk' },
+]
+
+function App() {
+  // Create a const named status and a function called setStatus
+  const [status, setStatus] = useState('');
+  // sendPing is a function that will send a ping to the backend
+  const sendPing = async () => {
+      let response = await fetch('https://localhost:8888/', {
+        method : 'post',
+        body : 'satyaReact Guru'
+      })
+
+
+      console.log(response.status); // 200
+      console.log(response.statusText); // OK
+
+      if (response.status === 200) {
+          let data = await response.text();
+          // handle data
+          console.log(data);
+          //alert('Hi this is a response from the backend: ' + data);
+          setStatus(data);
+      }
+  }
+
+  useEffect(() => {
+    // Start a interval each 3 seconds which calls sendPing. 
+    const interval = setInterval(() => sendPing(), 3000)
+    return () => {
+      // reset timer
+      clearInterval(interval);
+    }
+  },[status]);
+  
+  // we will return the HTML. Since status is a bool
+  // we need to + '' to convert it into a string
+  return (
+    <div className="App">
+    <p>Status: {status + ''}</p>
+    </div>
+  );
+
+
+}
+/* 
+function App() {
+
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    // You need to restrict it at some point
+    // This is just dummy code and should be replaced by actual
+    if (!message) {
+        getMessage();
+    }
+  }, []);
+
+
+  const getMessage = async () => {
+    try {
+      let response = await fetch('https://localhost:8888/', {
+        method : 'post',
+        body : 'satyaReact Guru'
+      })
+
+
+      console.log(response.status); // 200
+      console.log(response.statusText); // OK
+  
+      if (response.status === 200) {
+          let data = await response.text();
+          // handle data
+          console.log(data);
+          //alert('Hi this is a response from the backend: ' + data);
+          setMessage(data);
+       }
+
+    } catch (err) {
+      alert(err);
+    }
+  };
+
+
+  return (
+    <div className="App">
+      <HelloWorld />
+      <h1>Response is {message}</h1>
+    </div>
+  );
+} */
+
+export default App;
